@@ -60,10 +60,6 @@
         }
         
         #loading-screen {
-            background-image: url('https://img5.pic.in.th/file/secure-sv1/C45C9FA0-8AFB-462D-876C-8B7FAB18C816.png');
-            background-size: cover;
-            background-position: center bottom;
-            background-repeat: no-repeat;
             background-color: #a3e635;
         }
 
@@ -199,7 +195,7 @@
     <!-- 🎬 Start Screen (หน้าปกเกม) -->
     <div id="loading-screen" class="absolute inset-0 z-50 flex flex-col justify-end items-center pb-8 lg:pb-12 overflow-hidden bg-[#9fd163]">
         <img src="https://img5.pic.in.th/file/secure-sv1/C45C9FA0-8AFB-462D-876C-8B7FAB18C816.png" 
-             class="absolute inset-0 w-full h-full object-contain md:object-cover pointer-events-none opacity-90" 
+             class="absolute inset-0 w-full h-full object-cover pointer-events-none" 
              alt="Cover Background">
              
         <!-- เปลี่ยน onlick ให้เรียก showCutscene() ก่อนเข้าเกม -->
@@ -569,8 +565,8 @@
 
         // --- ระบบคัตซีน (Cutscene System) ---
         const cutsceneImages = [
-            "https://img2.pic.in.th/IMG_4219.md.png",
-            "https://img5.pic.in.th/file/secure-sv1/IMG_4224607d50e6da711670.md.png",
+            "https://img2.pic.in.th/IMG_4228.png",
+            "https://img5.pic.in.th/file/secure-sv1/IMG_422789a46dc1aca4626e.png",
             "https://img2.pic.in.th/IMG_421761bbc6e9829b14af.md.jpeg"
         ];
         let currentCutsceneIndex = 0;
