@@ -107,6 +107,8 @@
         .level-dot:hover { transform: scale(1.2); background-color: #94a3b8; }
         .level-dot.active { width: 32px; height: 32px; background-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); transform: scale(1.2); cursor: default; }
         .level-dot.passed { background-color: #84cc16; }
+        .level-dot.locked { opacity: 0.6; cursor: not-allowed; background-color: #94a3b8; }
+        .level-dot.locked:hover { transform: none; background-color: #94a3b8; }
 
         .editor-highlight:hover { background-color: rgba(251, 191, 36, 0.3); border: 2px dashed #fbbf24; cursor: crosshair; }
         .tool-btn.active { background-color: #d9f99d; border-color: #65a30d; transform: scale(1.05); }
@@ -153,11 +155,27 @@
             50% { transform: translateY(-4px) scale(1.02); }
         }
         .animate-run-btn { animation: run-bounce 2s infinite ease-in-out; }
+
+        /* --- สไตล์สำหรับแสงนำทาง (Hint) --- */
+        .hint-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: rgba(250, 204, 21, 0.3);
+            border: 3px solid #facc15;
+            border-radius: inherit;
+            pointer-events: none;
+            animation: pulse-glow 1.5s infinite;
+            z-index: 15;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; box-shadow: inset 0 0 10px rgba(250, 204, 21, 0.4); }
+            50% { opacity: 1; box-shadow: inset 0 0 20px rgba(250, 204, 21, 0.8); }
+        }
     </style>
 </head>
 <body class="flex flex-col text-slate-800 w-full h-full" oncontextmenu="return false;">
 
-    <audio id="bgm-audio" loop preload="auto">
+    <audio id="bgm-audio" loop preload="auto" autoplay>
         <source src="https://image2url.com/r2/default/audio/1770567023761-85df9868-a03a-4558-be83-c280029ad28c.mp3" type="audio/mpeg">
     </audio>
 
@@ -193,21 +211,25 @@
     </div>
 
     <!-- 🎬 Start Screen (หน้าปกเกม) -->
-    <div id="loading-screen" class="absolute inset-0 z-50 flex flex-col justify-end items-center pb-8 lg:pb-12 overflow-hidden bg-[#9fd163]">
+    <div id="loading-screen" class="absolute inset-0 z-50 overflow-hidden bg-[#9fd163]">
+        
+        <!-- ภาพพื้นหลัง ให้เต็มจอเสมอและยึดขอบล่างเป็นหลัก (object-bottom) -->
         <img src="https://img5.pic.in.th/file/secure-sv1/C45C9FA0-8AFB-462D-876C-8B7FAB18C816.png" 
-             class="absolute inset-0 w-full h-full object-cover pointer-events-none" 
+             class="absolute inset-0 w-full h-full object-cover object-bottom pointer-events-none" 
              alt="Cover Background">
              
-        <!-- เปลี่ยน onlick ให้เรียก showCutscene() ก่อนเข้าเกม -->
-        <div id="start-btn-container" class="absolute bottom-6 md:bottom-12 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 md:gap-3 animate-fade-in w-full px-4 z-10">
-            <button onclick="showCutscene()" class="btn-play-now w-full max-w-[240px] md:max-w-[280px] py-2.5 md:py-3 text-white font-black rounded-full text-xl md:text-2xl tracking-wide">
+        <!-- กลุ่มปุ่ม จัดตำแหน่งให้อยู่ด้านล่าง -->
+        <div id="start-btn-container" class="absolute bottom-[6%] md:bottom-[10%] left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 md:gap-3 w-[90%] max-w-sm z-10 animate-fade-in">
+            <button onclick="showCutscene()" class="btn-play-now w-full py-2.5 md:py-3 text-white font-black rounded-full text-xl md:text-2xl tracking-wide">
                 PLAY NOW!
             </button>
-            <a href="https://docs.google.com/document/d/1MB1qxyozjjrFZjJQjFHaOSWemhVNZhacvYfFyc_2_W8/edit?usp=sharing" target="_blank" class="btn-how-to w-full max-w-[160px] md:max-w-[180px] py-1.5 md:py-2 text-white font-bold rounded-full text-xs md:text-sm shadow-lg flex items-center justify-center">
+            <a href="https://docs.google.com/document/d/1MB1qxyozjjrFZjJQjFHaOSWemhVNZhacvYfFyc_2_W8/edit?usp=sharing" target="_blank" class="btn-how-to w-[60%] py-1.5 md:py-2 text-white font-bold rounded-full text-xs md:text-sm shadow-lg flex items-center justify-center">
                 How To Play
             </a>
-            <div class="mt-1 text-white/90 text-[9px] md:text-[10px] font-bold bg-black/40 px-3 py-0.5 rounded-full backdrop-blur-sm">
-                (ระบบจะขออนุญาตใช้กล้อง)
+            
+            <!-- เครดิตผู้จัดทำ -->
+            <div class="mt-1 text-white/95 text-[10px] md:text-xs font-bold bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-md text-center shadow-lg border border-white/20 leading-tight w-full">
+                ผู้จัดทำ : นายพงศกร บูรณเทศ<br class="sm:hidden"> ICT Talent โรงเรียนบ้านตอง จ.น่าน
             </div>
         </div>
         
@@ -281,6 +303,9 @@
                             <i class="fas fa-cog"></i>
                         </button>
                         
+                        <!-- ปุ่มตัวช่วยนำทาง -->
+                        <button onclick="showHint()" class="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 rounded-lg text-yellow-900 text-xs transition font-bold shadow-md" title="ขอตัวช่วย"><i class="fas fa-lightbulb mr-1"></i>ตัวช่วย</button>
+
                         <button id="editor-toggle-btn" onclick="toggleEditorMode()" class="px-3 py-1 bg-purple-500 hover:bg-purple-600 rounded-lg text-white text-xs transition font-bold shadow-md"><i class="fas fa-tools mr-1"></i>โหมดครู</button>
                         <div class="w-px h-6 bg-slate-200 mx-1"></div>
                         <button id="music-btn" onclick="toggleMusic()" class="w-8 h-8 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full shadow transition text-xs"><i class="fas fa-volume-up"></i></button>
@@ -513,6 +538,7 @@
 
         let state = {
             currentLevelIdx: 0,
+            highestLevelUnlocked: 0,
             squirrelPos: {x: 0, y: 0},
             facing: 'right', 
             collectedTargets: [], 
@@ -737,11 +763,22 @@
         function renderLevelMap() {
             levelMapContainer.innerHTML = '';
             LEVELS.forEach((level, index) => {
+                const isUnlocked = index <= state.highestLevelUnlocked || state.isEditorMode;
                 const dot = document.createElement('div');
-                dot.className = `level-dot ${index === state.currentLevelIdx ? 'active' : ''} ${index < state.currentLevelIdx ? 'passed' : ''}`;
-                dot.onclick = () => { if (!state.isExecuting) { playSound('click'); initLevel(index); } };
+                dot.className = `level-dot ${index === state.currentLevelIdx ? 'active' : ''} ${index < state.currentLevelIdx ? 'passed' : ''} ${!isUnlocked ? 'locked' : ''}`;
+                dot.onclick = () => { 
+                    if (!state.isExecuting) { 
+                        if (isUnlocked) {
+                            playSound('click'); 
+                            initLevel(index); 
+                        } else {
+                            playSound('error');
+                        }
+                    } 
+                };
                 if (index === state.currentLevelIdx) dot.innerHTML = '📍';
                 else if (index < state.currentLevelIdx) dot.innerHTML = '✅';
+                else if (!isUnlocked) dot.innerHTML = '🔒';
                 else dot.innerHTML = level.id;
                 levelMapContainer.appendChild(dot);
             });
@@ -758,6 +795,7 @@
                 for(let x=0; x<level.width; x++) {
                     const cell = document.createElement('div');
                     cell.className = `${cellSize} rounded-lg border-b-4 flex items-center justify-center relative grid-cell overflow-visible`;
+                    cell.id = `cell-${x}-${y}`; // เพิ่ม id สำหรับใช้หาช่องตอนแสดงตัวช่วย
                     if (state.isEditorMode) {
                         cell.classList.add('cursor-pointer', 'editor-highlight');
                         cell.onclick = () => handleEditorClick(x, y);
@@ -837,6 +875,7 @@
                 state.squirrelPos = {...level.start};
                 state.collectedTargets = [];
                 if (state.squirrelPos.x === 0) state.facing = 'right'; else if (state.squirrelPos.x === level.width - 1) state.facing = 'left';
+                renderLevelMap();
             } else {
                 editorToolbar.classList.add('hidden');
                 editorToggleBtn.innerHTML = '<i class="fas fa-tools mr-1"></i>โหมดครู';
@@ -1091,7 +1130,94 @@
         }
 
         function checkWin() { return state.collectedTargets.length === LEVELS[state.currentLevelIdx].targets.length; }
-        function nextLevel() { ensureAudioContext(); if (state.currentLevelIdx < LEVELS.length - 1) initLevel(state.currentLevelIdx + 1); else { alert("ยินดีด้วย! คุณคือสุดยอดโปรแกรมเมอร์แห่งป่า!"); initLevel(0); } }
+        
+        // --- ระบบหาเส้นทางและแสดงตัวช่วย (Pathfinding & Hint) ---
+        function findPath() {
+            const level = LEVELS[state.currentLevelIdx];
+            const start = state.squirrelPos;
+            const uncollectedTargets = level.targets.filter((_, idx) => !state.collectedTargets.includes(idx));
+            if (uncollectedTargets.length === 0) return null;
+
+            const queue = [{x: start.x, y: start.y, path: []}];
+            const visited = new Set();
+            visited.add(`${start.x},${start.y}`);
+
+            const dirs = [{dx: 0, dy: -1}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 1, dy: 0}];
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+
+                // ถ้าเจอเป้าหมายที่ยังไม่ได้เก็บ ให้คืนค่าเส้นทาง
+                if (uncollectedTargets.some(t => t.x === curr.x && t.y === curr.y)) {
+                    return curr.path;
+                }
+
+                for (const dir of dirs) {
+                    const nx = curr.x + dir.dx;
+                    const ny = curr.y + dir.dy;
+                    const key = `${nx},${ny}`;
+
+                    if (nx >= 0 && nx < level.width && ny >= 0 && ny < level.height) {
+                        // เช็คว่ายังไม่เคยไป และไม่มีสิ่งกีดขวาง
+                        if (!visited.has(key) && !level.obstacles.some(o => o.x === nx && o.y === ny)) {
+                            visited.add(key);
+                            queue.push({x: nx, y: ny, path: [...curr.path, {x: nx, y: ny}]});
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function showHint() {
+            if (state.isExecuting || state.isEditorMode) return;
+            
+            // ลบตัวช่วยเดิมออกก่อน (ถ้ามีค้างอยู่)
+            document.querySelectorAll('.hint-overlay').forEach(el => el.remove());
+
+            const path = findPath();
+            if (!path || path.length === 0) {
+                playSound('error'); // ไม่มีทางไปหรือเก็บครบแล้ว
+                return; 
+            }
+
+            playSound('pop'); 
+            
+            // ไล่แสดงแสงกะพริบตามช่องที่เป็นทางเดินไปหาลูกโอ๊ค
+            path.forEach((p, idx) => {
+                const cell = document.getElementById(`cell-${p.x}-${p.y}`);
+                if (cell) {
+                    setTimeout(() => {
+                        const overlay = document.createElement('div');
+                        overlay.className = 'hint-overlay flex items-center justify-center text-xl';
+                        overlay.innerHTML = '✨';
+                        cell.appendChild(overlay);
+                        
+                        // ค่อยๆ จางและหายไปหลังจาก 2.5 วินาที
+                        setTimeout(() => {
+                            if (overlay.parentNode === cell) {
+                                overlay.style.opacity = '0';
+                                overlay.style.transition = 'opacity 0.5s';
+                                setTimeout(() => overlay.remove(), 500);
+                            }
+                        }, 2500); 
+                    }, idx * 150); // ดีเลย์ให้แสงวิ่งเป็นเส้นทาง
+                }
+            });
+        }
+        // -----------------------------------------------------
+
+        function nextLevel() { 
+            ensureAudioContext(); 
+            if (state.currentLevelIdx < LEVELS.length - 1) {
+                state.highestLevelUnlocked = Math.max(state.highestLevelUnlocked, state.currentLevelIdx + 1);
+                initLevel(state.currentLevelIdx + 1); 
+            } else { 
+                alert("ยินดีด้วย! คุณคือสุดยอดโปรแกรมเมอร์แห่งป่า!"); 
+                initLevel(0); 
+            } 
+        }
+        
         function resetLevel() { ensureAudioContext(); initLevel(state.currentLevelIdx); }
         function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -1344,8 +1470,23 @@
             }
         }
         
-        // โหลดด่านแรกไว้ตอนเปิด
-        window.onload = () => { initLevel(0); };
+        // โหลดด่านแรกไว้ตอนเปิดเว็บ
+        window.onload = () => { 
+            initLevel(0); 
+            
+            // พยายามให้เล่นเพลงทันที
+            playBackgroundMusic();
+            
+            // (ฟังก์ชันสำรอง) หากเบราว์เซอร์บล็อกการเล่นเพลงอัตโนมัติ ให้เริ่มเล่นทันทีที่ผู้ใช้คลิกหน้าจอครั้งแรก
+            const startAudioOnFirstInteract = () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                if (bgmAudio.paused) playBackgroundMusic();
+                document.removeEventListener('click', startAudioOnFirstInteract);
+                document.removeEventListener('touchstart', startAudioOnFirstInteract);
+            };
+            document.addEventListener('click', startAudioOnFirstInteract);
+            document.addEventListener('touchstart', startAudioOnFirstInteract);
+        };
     </script>
 </body>
 </html>
