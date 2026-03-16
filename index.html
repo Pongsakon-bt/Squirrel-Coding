@@ -184,10 +184,11 @@
         <div class="bg-[#fffbeb] p-8 md:p-10 rounded-[4rem] shadow-2xl max-w-md w-[90%] text-center border-8 border-amber-200 relative mt-24">
             
             <div class="absolute -top-20 left-1/2 transform -translate-x-1/2 w-64 flex justify-center pointer-events-none">
-                <img src="https://img5.pic.in.th/file/secure-sv1/9d6ed05bb24c769cab252816febf305d.md.png" 
+                <img src="https://lh3.googleusercontent.com/d/12GaHRAO97YtEbqV7gHjC7XJDcibVSIx6" 
                      alt="Squirrel Mascot" 
                      class="h-48 object-contain drop-shadow-2xl animate-wave" 
-                     style="animation-duration: 3s; transform-origin: bottom center;">
+                     style="animation-duration: 3s; transform-origin: bottom center;"
+                     onerror="this.style.display='none'">
             </div>
             
             <div class="mt-20 mb-8">
@@ -214,9 +215,10 @@
     <div id="loading-screen" class="absolute inset-0 z-50 overflow-hidden bg-[#9fd163]">
         
         <!-- ภาพพื้นหลัง ให้เต็มจอเสมอและยึดขอบล่างเป็นหลัก (object-bottom) -->
-        <img src="https://img5.pic.in.th/file/secure-sv1/C45C9FA0-8AFB-462D-876C-8B7FAB18C816.png" 
+        <img src="https://lh3.googleusercontent.com/d/1I4uBrZF-Iy-j2DL5a4gVpcA8RtQrIAFT" 
              class="absolute inset-0 w-full h-full object-cover object-bottom pointer-events-none" 
-             alt="Cover Background">
+             alt="Cover Background"
+             onerror="this.style.display='none'">
              
         <!-- กลุ่มปุ่ม จัดตำแหน่งให้อยู่ด้านล่าง -->
         <div id="start-btn-container" class="absolute bottom-[6%] md:bottom-[10%] left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 md:gap-3 w-[90%] max-w-sm z-10 animate-fade-in">
@@ -448,7 +450,9 @@
         }
         
         const CONFIG = { detectionThreshold: 1500, maxCommands: 16 };
-        const CHARACTER_IMAGE_URL = "https://img5.pic.in.th/file/secure-sv1/8daa4219524794e2a66152afed3ca6bb.png";
+        // แปลงลิงก์ Google Drive เป็นลิงก์ที่ใช้แสดงผลโดยตรงได้
+        const CHARACTER_IMAGE_URL = "https://lh3.googleusercontent.com/d/1w8e8wFr6pEbRGuMU0ZEeFYnSiO7Rq9t-";
+        const FALLBACK_IMAGE_URL = "https://img5.pic.in.th/file/secure-sv1/8daa4219524794e2a66152afed3ca6bb.png";
         
         let useSynth = false; 
         
@@ -547,6 +551,7 @@
             isLevelComplete: false,
             detectedGesture: null,
             gestureStartTime: 0,
+            lastSeenGestureTime: 0,
             isMusicPlaying: true,
             musicInterval: null,
             musicNoteIdx: 0,
@@ -835,7 +840,7 @@
                              cell.innerHTML += `
                                 <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none opacity-50 grayscale">
                                     <div class="w-4/5 h-4/5 ${facingClass}">
-                                        <img src="${CHARACTER_IMAGE_URL}" class="character-img" alt="Start">
+                                        <img src="${CHARACTER_IMAGE_URL}" class="character-img" alt="Start" onerror="this.src='${FALLBACK_IMAGE_URL}'">
                                     </div>
                                 </div>`;
                          }
@@ -848,7 +853,7 @@
                             const squirrelInner = document.createElement('span');
                             squirrelInner.className = `squirrel-inner ${facingClass}`;
                             
-                            squirrelInner.innerHTML = `<img src="${CHARACTER_IMAGE_URL}" class="character-img" alt="Player">`;
+                            squirrelInner.innerHTML = `<img src="${CHARACTER_IMAGE_URL}" class="character-img" alt="Player" onerror="this.src='${FALLBACK_IMAGE_URL}'">`;
                             
                             squirrelBody.appendChild(squirrelInner);
                             squirrelWrapper.appendChild(squirrelBody);
@@ -1385,41 +1390,100 @@
             ctx.restore();
         }
 
-        function isFingerExtended(landmarks, tipIdx, pipIdx) { const wrist = landmarks[0]; const tip = landmarks[tipIdx]; const pip = landmarks[pipIdx]; return Math.sqrt(Math.pow(tip.x - wrist.x, 2) + Math.pow(tip.y - wrist.y, 2)) > Math.sqrt(Math.pow(pip.x - wrist.x, 2) + Math.pow(pip.y - wrist.y, 2)); }
+        // เพิ่มความแม่นยำในการเช็คนิ้วเหยียด โดยให้ปลายนิ้วต้องไกลจากข้อมือมากกว่าข้อกลางอย่างน้อย 15%
+        function isFingerExtended(landmarks, tipIdx, pipIdx) { 
+            const wrist = landmarks[0]; 
+            const tip = landmarks[tipIdx]; 
+            const pip = landmarks[pipIdx]; 
+            const distTip = Math.sqrt(Math.pow(tip.x - wrist.x, 2) + Math.pow(tip.y - wrist.y, 2));
+            const distPip = Math.sqrt(Math.pow(pip.x - wrist.x, 2) + Math.pow(pip.y - wrist.y, 2));
+            return distTip > (distPip * 1.15); 
+        }
         function isOpenPalm(landmarks) { return isFingerExtended(landmarks, 8, 6) && isFingerExtended(landmarks, 12, 10) && isFingerExtended(landmarks, 16, 14) && isFingerExtended(landmarks, 20, 18); }
         function isFist(landmarks) { return !isFingerExtended(landmarks, 8, 6) && !isFingerExtended(landmarks, 12, 10) && !isFingerExtended(landmarks, 16, 14) && !isFingerExtended(landmarks, 20, 18); }
 
         function processGesture(landmarks) {
-            const index = isFingerExtended(landmarks, 8, 6); const middle = isFingerExtended(landmarks, 12, 10); const ring = isFingerExtended(landmarks, 16, 14); const pinky = isFingerExtended(landmarks, 20, 18);
+            const index = isFingerExtended(landmarks, 8, 6); 
+            const middle = isFingerExtended(landmarks, 12, 10); 
+            const ring = isFingerExtended(landmarks, 16, 14); 
+            const pinky = isFingerExtended(landmarks, 20, 18);
+            
             let gesture = null, icon = "", text = "";
-            if (!index && !middle && !ring && !pinky) { gesture = 'DELETE'; icon = '✊'; text = "ลบคำสั่ง"; } 
-            else if (index && middle && ring && pinky) { if (state.isLevelComplete) { gesture = 'NEXT_LEVEL'; icon = '➡️'; text = "ด่านถัดไป"; } else { gesture = 'COLLECT'; icon = '🧺'; text = "เก็บของ"; } }
-            else if (index && middle && !ring && !pinky) { gesture = 'REPEAT'; icon = '✌️'; text = "ทำซ้ำ (x2)"; }
-            else if (index && !middle && !ring && !pinky) {
-                const dx = landmarks[8].x - landmarks[0].x; const dy = landmarks[8].y - landmarks[0].y;
-                if (Math.abs(dx) > Math.abs(dy)) { if (dx < -0.1) { gesture = 'RIGHT'; icon = '➡️'; text = "ไปขวา"; } else if (dx > 0.1) { gesture = 'LEFT'; icon = '⬅️'; text = "ไปซ้าย"; } }
-                else { if (dy < -0.1) { gesture = 'UP'; icon = '⬆️'; text = "เดินหน้า"; } else if (dy > 0.1) { gesture = 'DOWN'; icon = '⬇️'; text = "ถอยหลัง"; } }
+            
+            if (!index && !middle && !ring && !pinky) { 
+                gesture = 'DELETE'; icon = '✊'; text = "ลบคำสั่ง"; 
+            } 
+            else if (index && middle && ring && pinky) { 
+                if (state.isLevelComplete) { gesture = 'NEXT_LEVEL'; icon = '➡️'; text = "ด่านถัดไป"; } 
+                else { gesture = 'COLLECT'; icon = '🧺'; text = "เก็บของ"; } 
             }
-            if (gesture) handleGestureConfirm(gesture, icon, text); else resetGestureTimer();
+            else if (index && middle && !ring && !pinky) { 
+                gesture = 'REPEAT'; icon = '✌️'; text = "ทำซ้ำ (x2)"; 
+            }
+            else if (index && !middle && !ring && !pinky) {
+                // วัดจากโคนนิ้วชี้ (ข้อ 5) ไปยังปลายนิ้วชี้ (ข้อ 8) เพื่อหาทิศทางที่แม่นยำขึ้น ไม่ขึ้นกับความเอียงของข้อมือ
+                const dx = landmarks[8].x - landmarks[5].x; 
+                const dy = landmarks[8].y - landmarks[5].y;
+                
+                // ใช้ threshold ที่เหมาะสมกับการวัดจากข้อ 5 ถึงข้อ 8
+                const threshold = 0.04;
+
+                if (Math.abs(dx) > Math.abs(dy)) { 
+                    if (dx < -threshold) { gesture = 'RIGHT'; icon = '➡️'; text = "ไปขวา"; } 
+                    else if (dx > threshold) { gesture = 'LEFT'; icon = '⬅️'; text = "ไปซ้าย"; } 
+                } else { 
+                    if (dy < -threshold) { gesture = 'UP'; icon = '⬆️'; text = "เดินหน้า"; } 
+                    else if (dy > threshold) { gesture = 'DOWN'; icon = '⬇️'; text = "ถอยหลัง"; } 
+                }
+            }
+            if (gesture) handleGestureConfirm(gesture, icon, text); 
+            else resetGestureTimer();
         }
 
         function handleGestureConfirm(gesture, icon, text) {
             const now = Date.now();
+            
+            // ถ้ายืนยันท่าเดิม ให้อัปเดตเวลาล่าสุดที่เจอทิ้งไว้ด้วย
             if (gesture === state.detectedGesture) {
+                state.lastSeenGestureTime = now;
                 const elapsed = now - state.gestureStartTime;
                 updateFeedback(true, icon, text, elapsed);
+                
                 if (elapsed >= CONFIG.detectionThreshold) {
                     if (gesture === 'RESET') resetLevel();
                     else if (gesture === 'RUN') runCode();
                     else if (gesture === 'NEXT_LEVEL') nextLevel();
                     else if (gesture === 'DELETE') removeLastCommand();
                     else addCommand(gesture);
-                    resetGestureTimer(); state.detectedGesture = null;
+                    
+                    state.detectedGesture = null; 
+                    state.gestureStartTime = now; // เริ่มนับใหม่ เผื่อค้างท่าเดิมจะเบิ้ลคำสั่งได้อีกรอบ
+                    updateFeedback(false);
                 }
-            } else { state.detectedGesture = gesture; state.gestureStartTime = now; updateFeedback(true, icon, text, 0); }
+            } else { 
+                // ถ้าเปลี่ยนท่า หรือเจอท่าใหม่
+                // ยอมให้มี Buffer 300ms ถ้าเพิ่งหลุดท่าเดิมไป ไม่รีเซ็ตทันที
+                if (state.detectedGesture && (now - state.lastSeenGestureTime < 300)) {
+                    // ปล่อยผ่านไปก่อน (Ignore noise)
+                } else {
+                    state.detectedGesture = gesture; 
+                    state.gestureStartTime = now; 
+                    state.lastSeenGestureTime = now;
+                    updateFeedback(true, icon, text, 0); 
+                }
+            }
         }
 
-        function resetGestureTimer() { state.detectedGesture = null; state.gestureTimer = 0; updateFeedback(false); }
+        function resetGestureTimer() { 
+            const now = Date.now();
+            // ยอมให้มี Buffer 300ms ถ้าเพิ่งหลุดท่าเดิมไป ไม่รีเซ็ตทันที
+            if (state.detectedGesture && (now - state.lastSeenGestureTime < 300)) {
+                return;
+            }
+            state.detectedGesture = null; 
+            updateFeedback(false); 
+        }
+
         function updateFeedback(show, icon, text, timer) {
             if (show) {
                 gestureFeedback.classList.remove('opacity-0', 'scale-50'); gestureFeedback.classList.add('opacity-100', 'scale-100');
@@ -1453,7 +1517,7 @@
             const canvasElement = document.getElementById('output-canvas');
             
             const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-            hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+            hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.75, minTrackingConfidence: 0.75 });
             hands.onResults(onResults);
             
             const camera = new Camera(videoElement, { onFrame: async () => { await hands.send({image: videoElement}); }, width: 640, height: 360 });
